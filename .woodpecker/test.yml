@@ -1,0 +1,40 @@
+when:
+  - event: [push, manual]
+
+variables:
+  - &step_resources
+    backend_options:
+      kubernetes:
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 3Gi
+
+steps:
+  - name: vet
+    image: golang:1.25-alpine
+    <<: *step_resources
+    environment:
+      CGO_ENABLED: "1"
+    commands:
+      - apk add --no-cache git gcc musl-dev sqlite-dev
+      - go vet ./...
+
+  - name: test
+    image: golang:1.25-alpine
+    <<: *step_resources
+    environment:
+      CGO_ENABLED: "1"
+    commands:
+      - apk add --no-cache git gcc musl-dev sqlite-dev
+      - go test -count=1 ./...
+
+  - name: assets
+    image: node:22-alpine
+    <<: *step_resources
+    commands:
+      - npm install --no-audit --no-fund
+      - npm run build:css
