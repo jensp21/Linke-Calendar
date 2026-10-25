@@ -36,5 +36,5 @@ steps:
     image: node:22-alpine
     <<: *step_resources
     commands:
-      - npm install --no-audit --no-fund
+      - npm ci
       - npm run build:css
