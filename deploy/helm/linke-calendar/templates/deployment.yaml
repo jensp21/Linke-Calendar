@@ -18,7 +18,6 @@ spec:
         {{- include "linke-calendar.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: app
       annotations:
-        # Roll the pod when the config changes.
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       {{- with .Values.imagePullSecrets }}

@@ -1,15 +1,10 @@
 image:
   repository: registry.apex.romanzipp.cloud/linke-calendar-image
   pullPolicy: IfNotPresent
-  # Defaults to .Chart.AppVersion (== the git tag the chart was packaged from).
   tag: ""
 
-# Keep K8s resource names as `linke-calendar` even though the chart is `linke-calendar-chart`.
 fullnameOverride: linke-calendar
 
-# Cluster-specific image pull credentials. Populated from apex.
-#   imagePullSecrets:
-#     - name: image-pull
 imagePullSecrets: []
 
 service:
@@ -17,27 +12,6 @@ service:
   port: 80
   targetPort: 8080
 
-# Ingress is opt-in. Each group renders its own Ingress resource, so each can
-# carry its own annotations (e.g. a per-domain cert-manager issuer — required
-# when domains live in different DNS zones/ACME solvers). Cluster-specific
-# values live in the apex Argo Application's helm.values. Example:
-#   ingress:
-#     enabled: true
-#     className: haproxy
-#     groups:
-#       - name: romanzipp
-#         annotations:
-#           cert-manager.io/cluster-issuer: letsencrypt-prod
-#           haproxy.org/ssl-redirect: "true"
-#         hosts:
-#           - host: linke-calendar.example.com
-#             paths:
-#               - path: /
-#                 pathType: Prefix
-#         tls:
-#           - secretName: linke-calendar-tls
-#             hosts:
-#               - linke-calendar.example.com
 ingress:
   enabled: false
   className: ""
@@ -47,7 +21,6 @@ persistence:
   enabled: true
   storageClass: ""
   size: 1Gi
-  # SQLite scrape cache. ReadWriteOnce + Recreate is intentional (single replica).
   accessMode: ReadWriteOnce
   mountPath: /app/data
 
@@ -58,7 +31,6 @@ resources:
   limits:
     memory: 256Mi
 
-# config.yaml contents — rendered into a ConfigMap and mounted at /app/config.yaml.
 config:
   scraper:
     max_pages: 10
