@@ -1,5 +1,5 @@
 image:
-  repository: registry.apex.romanzipp.cloud/linke-calendar-image
+  repository: linke-calendar-image
   pullPolicy: IfNotPresent
   tag: ""
 
