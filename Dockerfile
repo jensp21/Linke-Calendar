@@ -13,6 +13,14 @@ ARG VERSION=dev
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags '-linkmode external -extldflags "-static" -X main.Version='${VERSION} -o server .
 
 FROM alpine:latest
+LABEL org.opencontainers.image.title="linke-calendar" \
+  org.opencontainers.image.description="Go service scraping Zetkin events and serving an embeddable calendar" \
+  org.opencontainers.image.vendor="Roman Zipp" \
+  org.opencontainers.image.authors="Roman Zipp" \
+  org.opencontainers.image.licenses="MIT" \
+  org.opencontainers.image.url="https://codeberg.org/romanzipp/linke-calendar" \
+  org.opencontainers.image.source="https://codeberg.org/romanzipp/linke-calendar" \
+  org.opencontainers.image.documentation="https://codeberg.org/romanzipp/linke-calendar"
 
 RUN apk --no-cache add ca-certificates tzdata
 

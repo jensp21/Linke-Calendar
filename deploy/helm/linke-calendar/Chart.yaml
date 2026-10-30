@@ -4,3 +4,12 @@ description: linke-calendar — Go service scraping Zetkin events and serving an
 type: application
 version: 0.0.0
 appVersion: "0.0.0"
+home: https://codeberg.org/romanzipp/linke-calendar
+sources:
+  - https://codeberg.org/romanzipp/linke-calendar
+maintainers:
+  - name: Roman Zipp
+annotations:
+  org.opencontainers.image.vendor: Roman Zipp
+  org.opencontainers.image.licenses: MIT
+  org.opencontainers.image.documentation: https://codeberg.org/romanzipp/linke-calendar
