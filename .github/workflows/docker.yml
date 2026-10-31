@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/jensp/linke-calendar
+  IMAGE_NAME: ghcr.io/jensp21/linke-calendar
 
 jobs:
   build-and-push:
