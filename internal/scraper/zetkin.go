@@ -32,6 +32,7 @@ type ZetkinEvent struct {
 	Contact      *ZetkinContact     `json:"contact"`
 	Organization ZetkinOrganization `json:"organization"`
 	Cancelled    *string            `json:"cancelled"`
+	Campaign     *ZetkinCampaign	`json:"campaign"`
 }
 
 type ZetkinActivity struct {
@@ -56,6 +57,13 @@ type ZetkinOrganization struct {
 	Title string `json:"title"`
 }
 
+type ZetkinCampaign struct {
+	ID    int    `json:"id"`
+	Title string `json:"title"`
+}
+
+
+
 func NewZetkinClient(orgID int, timeout time.Duration) *ZetkinClient {
 	return &ZetkinClient{
 		orgID: orgID,
@@ -75,7 +83,6 @@ func (z *ZetkinClient) FetchAllEvents() ([]ZetkinEvent, error) {
 
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:145.0) Gecko/20100101 Firefox/145.0")
 	req.Header.Set("Accept", "application/json")
-
 	resp, err := z.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)

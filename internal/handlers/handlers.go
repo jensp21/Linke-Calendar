@@ -86,11 +86,10 @@ func (h *Handler) Calendar(w http.ResponseWriter, r *http.Request) {
 			month = time.Month(m)
 		}
 	}
-
+	
 	startDate := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 	endDate := startDate.AddDate(0, 1, 0)
-
-	events, err := h.db.GetEventsByOrganizationInRange(orgID, startDate, endDate)
+	events, err := h.db.GetEventsByOrganizationInRange(orgID, startDate, endDate, "OV Nippes")
 	if err != nil {
 		log.Printf("Failed to get events: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

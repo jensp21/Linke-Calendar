@@ -45,6 +45,7 @@ func (db *DB) Initialize() error {
 		scraper TEXT DEFAULT 'website',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		campaign TEXT,
 		FOREIGN KEY (organization_id) REFERENCES organizations(id)
 	);
 
