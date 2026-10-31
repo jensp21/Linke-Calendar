@@ -45,10 +45,8 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Calendar(w http.ResponseWriter, r *http.Request) {
-	orgStr := chi.URLParam(r, "org")
-	orgID, err := strconv.Atoi(orgStr)
-	if err != nil {
-		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
+	orgID, campaignID, ok := parseOrgAndCampaign(w, r)
+	if !ok {
 		return
 	}
 
@@ -86,10 +84,11 @@ func (h *Handler) Calendar(w http.ResponseWriter, r *http.Request) {
 			month = time.Month(m)
 		}
 	}
-	
+
 	startDate := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 	endDate := startDate.AddDate(0, 1, 0)
-	events, err := h.db.GetEventsByOrganizationInRange(orgID, startDate, endDate, "OV Nippes")
+
+	events, err := h.db.GetEventsByOrganizationInRange(orgID, startDate, endDate, campaignID)
 	if err != nil {
 		log.Printf("Failed to get events: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -106,6 +105,7 @@ func (h *Handler) Calendar(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		OrganizationID    int
 		OrganizationTitle string
+		BasePath          string
 		Calendar          *calendar.Month
 		Year              int
 		Month             int
@@ -117,6 +117,7 @@ func (h *Handler) Calendar(w http.ResponseWriter, r *http.Request) {
 	}{
 		OrganizationID:    orgID,
 		OrganizationTitle: getOrganizationTitle(org),
+		BasePath:          basePath(orgID, campaignID),
 		Calendar:          cal,
 		Year:              year,
 		Month:             int(month),
@@ -183,10 +184,8 @@ func (h *Handler) EventDetail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	orgStr := chi.URLParam(r, "org")
-	orgID, err := strconv.Atoi(orgStr)
-	if err != nil {
-		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
+	orgID, campaignID, ok := parseOrgAndCampaign(w, r)
+	if !ok {
 		return
 	}
 
@@ -213,7 +212,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 	color := r.URL.Query().Get("color")
 
-	events, err := h.db.GetAllUpcomingEventsByOrganization(orgID)
+	events, err := h.db.GetAllUpcomingEventsByOrganization(orgID, campaignID)
 	if err != nil {
 		log.Printf("Failed to get upcoming events: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -241,10 +240,8 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ICalendar(w http.ResponseWriter, r *http.Request) {
-	orgStr := chi.URLParam(r, "org")
-	orgID, err := strconv.Atoi(orgStr)
-	if err != nil {
-		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
+	orgID, campaignID, ok := parseOrgAndCampaign(w, r)
+	if !ok {
 		return
 	}
 
@@ -271,7 +268,7 @@ func (h *Handler) ICalendar(w http.ResponseWriter, r *http.Request) {
 
 	title := getOrganizationTitle(org)
 
-	events, err := h.db.GetEventsByOrganization(orgID)
+	events, err := h.db.GetEventsByOrganization(orgID, campaignID)
 	if err != nil {
 		log.Printf("Failed to get events for organization %d: %v", orgID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -324,12 +321,46 @@ func (h *Handler) ICalendar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%d.ics\"", orgID))
+	filename := fmt.Sprintf("%d.ics", orgID)
+	if campaignID != 0 {
+		filename = fmt.Sprintf("%d-%d.ics", orgID, campaignID)
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 
 	if err := cal.SerializeTo(w); err != nil {
 		log.Printf("Failed to serialize iCal: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
+}
+
+// parseOrgAndCampaign reads the organization ID and the optional campaign ID
+// from the URL path. A campaign ID of 0 means "all campaigns". On invalid input
+// an error response is written and ok is false.
+func parseOrgAndCampaign(w http.ResponseWriter, r *http.Request) (orgID, campaignID int, ok bool) {
+	orgID, err := strconv.Atoi(chi.URLParam(r, "org"))
+	if err != nil {
+		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
+		return 0, 0, false
+	}
+
+	if campaignStr := chi.URLParam(r, "campaign"); campaignStr != "" {
+		campaignID, err = strconv.Atoi(campaignStr)
+		if err != nil || campaignID <= 0 {
+			http.Error(w, "Invalid campaign ID", http.StatusBadRequest)
+			return 0, 0, false
+		}
+	}
+
+	return orgID, campaignID, true
+}
+
+// basePath returns the URL prefix for an organization, including the
+// campaign segment if a campaign filter is active.
+func basePath(orgID, campaignID int) string {
+	if campaignID != 0 {
+		return fmt.Sprintf("/org/%d/campaign/%d", orgID, campaignID)
+	}
+	return fmt.Sprintf("/org/%d", orgID)
 }
 
 func reinterpretTimeInLocation(t time.Time, loc *time.Location) time.Time {

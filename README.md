@@ -174,6 +174,9 @@ npm run watch:css
   - Query params: `color` (optional)
 - `GET /org/{org}/ical` - iCal endpoint for subscribing with mobile device
   - Organization name is automatically fetched from Zetkin API and used as calendar title
+- `GET /org/{org}/campaign/{campaign}/calendar` - Calendar view, filtered by Zetkin campaign ID
+- `GET /org/{org}/campaign/{campaign}/list` - List view, filtered by Zetkin campaign ID
+- `GET /org/{org}/campaign/{campaign}/ical` - iCal endpoint, filtered by Zetkin campaign ID
 - `GET /event/{eventID}` - Event detail modal
 - `GET /static/*` - Static files (CSS, JS, fonts)
 

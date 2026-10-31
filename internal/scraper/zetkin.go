@@ -32,7 +32,7 @@ type ZetkinEvent struct {
 	Contact      *ZetkinContact     `json:"contact"`
 	Organization ZetkinOrganization `json:"organization"`
 	Cancelled    *string            `json:"cancelled"`
-	Campaign     *ZetkinCampaign	`json:"campaign"`
+	Campaign     *ZetkinCampaign    `json:"campaign"`
 }
 
 type ZetkinActivity struct {
@@ -61,8 +61,6 @@ type ZetkinCampaign struct {
 	ID    int    `json:"id"`
 	Title string `json:"title"`
 }
-
-
 
 func NewZetkinClient(orgID int, timeout time.Duration) *ZetkinClient {
 	return &ZetkinClient{

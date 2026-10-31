@@ -19,14 +19,19 @@ type Event struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	Campaign       string
+	CampaignID     sql.NullInt64
 }
+
+// campaignFilter restricts a query to a single campaign. A campaignID of 0
+// disables the filter and matches all events of the organization.
+const campaignFilter = `(? = 0 OR campaign_id = ?)`
 
 func (db *DB) CreateEvent(event *Event) error {
 	query := `
 		INSERT INTO events (
 			organization_id, title, description, datetime_start, datetime_end,
-			url, location, scraper, campaign
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			url, location, scraper, campaign, campaign_id
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	result, err := db.Exec(
 		query,
@@ -39,6 +44,7 @@ func (db *DB) CreateEvent(event *Event) error {
 		event.Location,
 		event.Scraper,
 		event.Campaign,
+		event.CampaignID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create event: %w", err)
@@ -56,7 +62,7 @@ func (db *DB) CreateEvent(event *Event) error {
 func (db *DB) GetEvent(id int) (*Event, error) {
 	query := `
 		SELECT id, organization_id, title, description, datetime_start, datetime_end,
-		       url, location, scraper, created_at, updated_at, campaign
+		       url, location, scraper, created_at, updated_at, COALESCE(campaign, ''), campaign_id
 		FROM events WHERE id = ?
 	`
 	var event Event
@@ -73,6 +79,7 @@ func (db *DB) GetEvent(id int) (*Event, error) {
 		&event.CreatedAt,
 		&event.UpdatedAt,
 		&event.Campaign,
+		&event.CampaignID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get event: %w", err)
@@ -80,57 +87,57 @@ func (db *DB) GetEvent(id int) (*Event, error) {
 	return &event, nil
 }
 
-func (db *DB) GetEventsByOrganization(orgID int) ([]*Event, error) {
+func (db *DB) GetEventsByOrganization(orgID int, campaignID int) ([]*Event, error) {
 	query := `
 		SELECT id, organization_id, title, description, datetime_start, datetime_end,
-		       url, location, scraper, created_at, updated_at, campaign
+		       url, location, scraper, created_at, updated_at, COALESCE(campaign, ''), campaign_id
 		FROM events
-		WHERE organization_id = ? AND campaign = 'OV Nippes'
+		WHERE organization_id = ? AND ` + campaignFilter + `
 		ORDER BY datetime_start ASC
 	`
-	return db.queryEvents(query, orgID)
+	return db.queryEvents(query, orgID, campaignID, campaignID)
 }
 
-func (db *DB) GetEventsByOrganizationInRange(orgID int, start, end time.Time, campaign string) ([]*Event, error) {
+func (db *DB) GetEventsByOrganizationInRange(orgID int, start, end time.Time, campaignID int) ([]*Event, error) {
 	query := `
 		SELECT id, organization_id, title, description, datetime_start, datetime_end,
-		       url, location, scraper, created_at, updated_at, campaign
+		       url, location, scraper, created_at, updated_at, COALESCE(campaign, ''), campaign_id
 		FROM events
-		WHERE organization_id = ? AND datetime_start >= ? AND datetime_start < ? AND campaign = 'OV Nippes'
+		WHERE organization_id = ? AND datetime_start >= ? AND datetime_start < ? AND ` + campaignFilter + `
 		ORDER BY datetime_start ASC
 	`
-	return db.queryEvents(query, orgID, start, end)
+	return db.queryEvents(query, orgID, start, end, campaignID, campaignID)
 }
 
-func (db *DB) GetUpcomingEventsByOrganization(orgID int, limit int) ([]*Event, error) {
+func (db *DB) GetUpcomingEventsByOrganization(orgID int, campaignID int, limit int) ([]*Event, error) {
 	query := `
 		SELECT id, organization_id, title, description, datetime_start, datetime_end,
-		       url, location, scraper, created_at, updated_at, campaign
+		       url, location, scraper, created_at, updated_at, COALESCE(campaign, ''), campaign_id
 		FROM events
-		WHERE organization_id = ? AND datetime_start >= datetime('now') AND campaign = 'OV Nippes'
+		WHERE organization_id = ? AND datetime_start >= datetime('now') AND ` + campaignFilter + `
 		ORDER BY datetime_start ASC
 		LIMIT ?
 	`
-	return db.queryEvents(query, orgID, limit)
+	return db.queryEvents(query, orgID, campaignID, campaignID, limit)
 }
 
-func (db *DB) GetAllUpcomingEventsByOrganization(orgID int) ([]*Event, error) {
+func (db *DB) GetAllUpcomingEventsByOrganization(orgID int, campaignID int) ([]*Event, error) {
 	query := `
 		SELECT id, organization_id, title, description, datetime_start, datetime_end,
-		       url, location, scraper, created_at, updated_at, campaign
+		       url, location, scraper, created_at, updated_at, COALESCE(campaign, ''), campaign_id
 		FROM events
-		WHERE organization_id = ? AND datetime_start >= datetime('now') AND campaign = 'OV Nippes'
+		WHERE organization_id = ? AND datetime_start >= datetime('now') AND ` + campaignFilter + `
 		ORDER BY datetime_start ASC
 	`
-	return db.queryEvents(query, orgID)
+	return db.queryEvents(query, orgID, campaignID, campaignID)
 }
 
 func (db *DB) UpsertEvent(event *Event) error {
 	query := `
 		INSERT INTO events (
 			organization_id, title, description, datetime_start, datetime_end,
-			url, location, scraper, campaign
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			url, location, scraper, campaign, campaign_id
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(url) DO UPDATE SET
 			title = excluded.title,
 			description = excluded.description,
@@ -139,7 +146,8 @@ func (db *DB) UpsertEvent(event *Event) error {
 			location = excluded.location,
 			scraper = excluded.scraper,
 			updated_at = CURRENT_TIMESTAMP,
-			campaign = excluded.campaign
+			campaign = excluded.campaign,
+			campaign_id = excluded.campaign_id
 	`
 	_, err := db.Exec(
 		query,
@@ -152,6 +160,7 @@ func (db *DB) UpsertEvent(event *Event) error {
 		event.Location,
 		event.Scraper,
 		event.Campaign,
+		event.CampaignID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to upsert event: %w", err)
@@ -191,6 +200,7 @@ func (db *DB) queryEvents(query string, args ...interface{}) ([]*Event, error) {
 			&event.CreatedAt,
 			&event.UpdatedAt,
 			&event.Campaign,
+			&event.CampaignID,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan event: %w", err)
 		}
