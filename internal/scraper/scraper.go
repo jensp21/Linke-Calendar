@@ -108,6 +108,14 @@ func (s *Scraper) scrapeZetkin(orgID int) (int, string) {
 			}
 			description += "Kontakt: " + event.Contact.Name
 		}
+		campaign := ""
+		var campaignID sql.NullInt64
+		if event.Campaign != nil {
+			campaign = event.Campaign.Title
+			if event.Campaign.ID != 0 {
+				campaignID = sql.NullInt64{Int64: int64(event.Campaign.ID), Valid: true}
+			}
+		}
 
 		eventURL := fmt.Sprintf("https://app.zetkin.die-linke.de/o/%d/events/%d", event.Organization.ID, event.ID)
 
@@ -120,6 +128,8 @@ func (s *Scraper) scrapeZetkin(orgID int) (int, string) {
 			URL:            eventURL,
 			Location:       toNullString(location),
 			Scraper:        "zetkin",
+			Campaign:       campaign,
+			CampaignID:     campaignID,
 		}
 
 		if err := s.db.UpsertEvent(dbEvent); err != nil {

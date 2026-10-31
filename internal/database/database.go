@@ -45,6 +45,8 @@ func (db *DB) Initialize() error {
 		scraper TEXT DEFAULT 'website',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		campaign TEXT,
+		campaign_id INTEGER,
 		FOREIGN KEY (organization_id) REFERENCES organizations(id)
 	);
 
@@ -56,10 +58,20 @@ func (db *DB) Initialize() error {
 		return fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
-	migrationSQL := `
-	ALTER TABLE organizations ADD COLUMN title TEXT;
-	`
-	db.Exec(migrationSQL)
+	// Migrations for existing databases. Errors are ignored because the
+	// columns already exist on fresh databases.
+	migrations := []string{
+		`ALTER TABLE organizations ADD COLUMN title TEXT`,
+		`ALTER TABLE events ADD COLUMN campaign TEXT`,
+		`ALTER TABLE events ADD COLUMN campaign_id INTEGER`,
+	}
+	for _, m := range migrations {
+		db.Exec(m)
+	}
+
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_events_org_campaign_date ON events(organization_id, campaign_id, datetime_start)`); err != nil {
+		return fmt.Errorf("failed to create campaign index: %w", err)
+	}
 
 	return nil
 }

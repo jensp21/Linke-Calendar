@@ -66,9 +66,17 @@ func main() {
 	})
 
 	r.Get("/health", h.Health)
-	r.Get("/org/{org}/calendar", h.Calendar)
-	r.Get("/org/{org}/list", h.List)
-	r.Get("/org/{org}/ical", h.ICalendar)
+	r.Route("/org/{org}", func(r chi.Router) {
+		r.Get("/calendar", h.Calendar)
+		r.Get("/list", h.List)
+		r.Get("/ical", h.ICalendar)
+
+		r.Route("/campaign/{campaign}", func(r chi.Router) {
+			r.Get("/calendar", h.Calendar)
+			r.Get("/list", h.List)
+			r.Get("/ical", h.ICalendar)
+		})
+	})
 	r.Get("/event/{eventID}", h.EventDetail)
 
 	fileServer := http.FileServer(http.Dir("web/static"))
