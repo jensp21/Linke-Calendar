@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   calendar:
-    image: ghcr.io/jensp/linke-calendar:latest
+    image: ghcr.io/jensp21/linke-calendar:latest
     ports:
       - "8080:8080"
     volumes:
