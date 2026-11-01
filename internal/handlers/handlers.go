@@ -28,7 +28,9 @@ type Handler struct {
 }
 
 func New(db *database.DB, scraper Scraper, version string) (*Handler, error) {
-	tmpl, err := template.ParseGlob("web/templates/*.html")
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"truncate": truncateText,
+	}).ParseGlob("web/templates/*.html")
 	if err != nil {
 		return nil, err
 	}
@@ -397,6 +399,22 @@ func basePath(orgID int, campaignIDs []int) string {
 		return fmt.Sprintf("/org/%d/campaign/%s", orgID, joinCampaignIDs(campaignIDs, "+"))
 	}
 	return fmt.Sprintf("/org/%d", orgID)
+}
+
+// truncateText collapses whitespace and shortens s to at most maxRunes
+// characters, cutting at a word boundary where possible and appending "…".
+func truncateText(maxRunes int, s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
+		return s
+	}
+
+	cut := runes[:maxRunes]
+	if i := strings.LastIndex(string(cut), " "); i > 0 {
+		cut = []rune(string(cut)[:i])
+	}
+	return strings.TrimRight(string(cut), " .,;:-") + "…"
 }
 
 func reinterpretTimeInLocation(t time.Time, loc *time.Location) time.Time {

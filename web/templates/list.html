@@ -29,6 +29,9 @@
                             {{.Location.String}}
                         </div>
                     {{end}}
+                    {{if .Description.Valid}}
+                        <p class="text-sm xs:text-base mt-2 mb-2">{{truncate 150 .Description.String}}</p>
+                    {{end}}
                     {{if .URL}}
                         <div class="text-sm xs:text-base">
                             <a href="{{.URL}}" target="_blank" class="underline {{if eq $.Color "white"}}text-white hover:underline{{else}}text-blue-600 hover:underline{{end}}">Mehr Informationen</a>
